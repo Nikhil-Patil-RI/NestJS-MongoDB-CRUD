@@ -1,7 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Book } from './book.schema';
 import * as mongoose from 'mongoose';
+import { Query } from 'express-serve-static-core';
+import { title } from 'process';
 
 @Injectable()
 export class BookService {
@@ -10,8 +16,23 @@ export class BookService {
     private bookModel: mongoose.Model<Book>,
   ) {}
 
-  async findAll(): Promise<Book[]> {
-    const books = await this.bookModel.find();
+  async findAll(query: Query): Promise<Book[]> {
+    const resultPerPage = 7;
+    const currentPage = Number(query.page) || 1;
+    const skip = resultPerPage * (currentPage - 1);
+
+    const keyWord = query.keyword
+      ? {
+          title: {
+            $regex: query.keyword,
+            $options: 'i',
+          },
+        }
+      : {};
+    const books = await this.bookModel
+      .find({ ...keyWord })
+      .limit(resultPerPage)
+      .skip(skip);
     return books;
   }
 
@@ -21,6 +42,12 @@ export class BookService {
   }
 
   async findBookById(id: string): Promise<Book> {
+    const isValidId = mongoose.isValidObjectId(id);
+
+    if (!isValidId) {
+      throw new BadRequestException('Please give correct id');
+    }
+
     const book = await this.bookModel.findById(id);
     if (!book) {
       throw new NotFoundException('Book not found');
@@ -29,6 +56,12 @@ export class BookService {
   }
 
   async updateBookById(id: string, book: Book): Promise<Book> {
+    const isValidId = mongoose.isValidObjectId(id);
+
+    if (!isValidId) {
+      throw new BadRequestException('Please give correct id');
+    }
+
     const updatedBook = await this.bookModel.findByIdAndUpdate(id, book, {
       new: true,
       runValidators: true,
@@ -40,6 +73,12 @@ export class BookService {
   }
 
   async deleteBookById(id: string): Promise<string> {
+    const isValidId = mongoose.isValidObjectId(id);
+
+    if (!isValidId) {
+      throw new BadRequestException('Please give correct id');
+    }
+
     const deletedBook = await this.bookModel.findByIdAndDelete(id);
     if (!deletedBook) {
       throw new NotFoundException('Book not found');
