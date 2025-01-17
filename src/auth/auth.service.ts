@@ -50,4 +50,20 @@ export class AuthService {
 
     return { token };
   }
+
+  async validateUser(email: string, password: string): Promise<string> {
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const passwordIsValid = await bcrypt.compare(password, user.password);
+
+    if (!passwordIsValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return `Welcome back, ${user.name}`;
+  }
 }

@@ -7,7 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Book } from './book.schema';
 import * as mongoose from 'mongoose';
 import { Query } from 'express-serve-static-core';
-import { title } from 'process';
+import { Auth } from 'src/auth/auth.schema';
 
 @Injectable()
 export class BookService {
@@ -36,8 +36,9 @@ export class BookService {
     return books;
   }
 
-  async insertBook(book: Book): Promise<Book> {
-    const newBook = new this.bookModel(book);
+  async insertBook(book: Book, user: Auth): Promise<Book> {
+    const data = Object.assign(book, { user: user._id})
+    const newBook = new this.bookModel(data);
     return newBook.save();
   }
 
